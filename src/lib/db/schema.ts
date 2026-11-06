@@ -31,7 +31,8 @@ export const listings = pgTable(
     // Wheel-only
     widthIn: numeric("width_in", { precision: 4, scale: 1, mode: "number" }),
     boltPattern: text("bolt_pattern"),
-    offsetEt: integer("offset_et"),
+    // Not always whole: some wheels are ET 42.5.
+    offsetEt: numeric("offset_et", { precision: 4, scale: 1, mode: "number" }),
     centreBoreMm: numeric("centre_bore_mm", { precision: 5, scale: 1, mode: "number" }),
     carMake: text("car_make"),
     wheelBrand: text("wheel_brand"),

@@ -137,7 +137,7 @@ export function ListingForm({ initial }: { initial: ListingFormValues }) {
               <Field label="Szélesség (J)" name="widthIn" value={v.widthIn} onChange={(x) => set("widthIn", x)}
                 type="number" step="0.5" placeholder="8" hint="Pl. 8 vagy 8.5" />
               <Field label="ET" name="offsetEt" value={v.offsetEt} onChange={(x) => set("offsetEt", x)}
-                type="number" placeholder="38" />
+                type="number" step="0.1" placeholder="38" hint="Pl. 38 vagy 42.5" />
               <Field label="Agyfurat (mm)" name="centreBoreMm" value={v.centreBoreMm}
                 onChange={(x) => set("centreBoreMm", x)} type="number" step="0.1" placeholder="66.6"
                 hint="Ha nem tudod, hagyd üresen" />
