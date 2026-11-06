@@ -7,7 +7,7 @@ import { z } from "zod";
 import { db, listings, listingImages, leads } from "@/lib/db";
 import { requireUser, login as doLogin, logout as doLogout } from "@/lib/auth";
 import { deleteImage } from "@/lib/storage";
-import { slugify } from "@/lib/format";
+import { parseHuf, slugify } from "@/lib/format";
 
 /* ------------------------------------------------------------------ auth */
 
@@ -29,8 +29,27 @@ export async function logoutAction() {
 
 /* -------------------------------------------------------------- listings */
 
-const num = z.coerce.number().finite().optional().nullable();
 const emptyToNull = (v: unknown) => (v === "" || v === undefined ? null : v);
+/** "8,5" and "8.5" are both eight and a half — Hungarian keyboards write the comma. */
+const commaToDot = (v: unknown) => (typeof v === "string" ? v.trim().replace(",", ".") : v);
+
+/** An optional measurement that may have decimals, e.g. width 8.5 or centre bore 66.6. */
+const decimal = (label: string) =>
+  z.preprocess(
+    (v) => emptyToNull(commaToDot(v)),
+    z.coerce.number({ error: `${label}: számot adj meg.` }).optional().nullable(),
+  );
+
+/** An optional whole number, e.g. ET 35 or DOT year 2024. Errors name the field, in Hungarian. */
+const whole = (label: string, example: string) =>
+  z.preprocess(
+    (v) => emptyToNull(commaToDot(v)),
+    z.coerce
+      .number({ error: `${label}: számot adj meg, pl. ${example}.` })
+      .int({ error: `${label}: egész számot adj meg, pl. ${example}.` })
+      .optional()
+      .nullable(),
+  );
 
 const ListingSchema = z.object({
   // A new listing posts an empty id field; that means "create", not an invalid id.
@@ -39,23 +58,27 @@ const ListingSchema = z.object({
   title: z.string().trim().min(2, "A cím kötelező."),
   slug: z.string().trim().optional().nullable(),
   description: z.string().trim().default(""),
-  priceHuf: z.coerce.number().int().min(0, "Az ár nem lehet negatív."),
+  // Typed as text, so "349.900" works: the dot is a thousand separator, not a decimal.
+  priceHuf: z.preprocess(
+    (v) => parseHuf(String(v ?? "")),
+    z.number({ error: "Add meg az árat forintban, pl. 349.900." }).int(),
+  ),
   status: z.enum(["active", "reserved", "sold", "hidden"]).default("active"),
 
-  diameterIn: z.preprocess(emptyToNull, num),
-  widthIn: z.preprocess(emptyToNull, num),
+  diameterIn: decimal("Átmérő"),
+  widthIn: decimal("Szélesség"),
   boltPattern: z.preprocess(emptyToNull, z.string().trim().nullable().optional()),
-  offsetEt: z.preprocess(emptyToNull, z.coerce.number().int().optional().nullable()),
-  centreBoreMm: z.preprocess(emptyToNull, num),
+  offsetEt: whole("ET", "35"),
+  centreBoreMm: decimal("Agyfurat"),
   carMake: z.preprocess(emptyToNull, z.string().trim().nullable().optional()),
   wheelBrand: z.preprocess(emptyToNull, z.string().trim().nullable().optional()),
 
-  tireWidthMm: z.preprocess(emptyToNull, z.coerce.number().int().optional().nullable()),
-  tireAspect: z.preprocess(emptyToNull, z.coerce.number().int().optional().nullable()),
+  tireWidthMm: whole("Szélesség", "235"),
+  tireAspect: whole("Profil", "55"),
   season: z.preprocess(emptyToNull, z.enum(["summer", "winter", "all_season"]).nullable().optional()),
   tireBrand: z.preprocess(emptyToNull, z.string().trim().nullable().optional()),
-  dotYear: z.preprocess(emptyToNull, z.coerce.number().int().optional().nullable()),
-  treadMm: z.preprocess(emptyToNull, num),
+  dotYear: whole("DOT év", "2024"),
+  treadMm: decimal("Profilmélység"),
 
   /** JSON array of { key, width, height } in display order, produced by the upload endpoint. */
   images: z.string().default("[]"),
