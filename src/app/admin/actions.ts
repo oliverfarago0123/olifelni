@@ -68,7 +68,7 @@ const ListingSchema = z.object({
   diameterIn: decimal("Átmérő"),
   widthIn: decimal("Szélesség"),
   boltPattern: z.preprocess(emptyToNull, z.string().trim().nullable().optional()),
-  offsetEt: whole("ET", "35"),
+  offsetEt: decimal("ET"),
   centreBoreMm: decimal("Agyfurat"),
   carMake: z.preprocess(emptyToNull, z.string().trim().nullable().optional()),
   wheelBrand: z.preprocess(emptyToNull, z.string().trim().nullable().optional()),
