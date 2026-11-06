@@ -30,7 +30,7 @@ export default async function EditListingPage({
     title: l.title,
     slug: l.slug,
     description: l.description,
-    priceHuf: l.priceHuf,
+    priceHuf: String(l.priceHuf),
     status: l.status,
     diameterIn: str(l.diameterIn),
     widthIn: str(l.widthIn),

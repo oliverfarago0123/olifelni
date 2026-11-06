@@ -17,6 +17,15 @@ const COMBINING = /[̀-ͯ]/g;
 const QUOTES = /["'‘’“”]/g;
 
 /** `Audi 20" 5x112` -> `audi-20-5x112`. ASCII-safe: no quotes, no accents. */
+/**
+ * Reads a price the way it is typed in Hungary: "349.900", "349 900" and "349900 Ft" are all
+ * 349 900 forints. Dots and spaces are thousand separators here, never decimals.
+ */
+export function parseHuf(input: string | number): number | null {
+  const digits = String(input).replace(/\D/g, "");
+  return digits ? Number(digits) : null;
+}
+
 export function slugify(input: string): string {
   return input
     .toLowerCase()

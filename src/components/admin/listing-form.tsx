@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { useActionState, useMemo, useState, startTransition } from "react";
 import { PhotoUploader, type UploadedImage } from "./photo-uploader";
 import { saveListing, type SaveState } from "@/app/admin/actions";
-import { huf, slugify } from "@/lib/format";
+import { huf, parseHuf, slugify } from "@/lib/format";
 import {
   BOLT_PATTERNS, CAR_MAKES, DIAMETERS, SEASON_LABEL,
   STATUS_LABEL, TIRE_BRANDS, WHEEL_BRANDS,
@@ -17,7 +16,8 @@ export type ListingFormValues = {
   title: string;
   slug?: string;
   description: string;
-  priceHuf: number | "";
+  /** As typed — "349.900" included. Read with parseHuf. */
+  priceHuf: string;
   status: "active" | "reserved" | "sold" | "hidden";
   diameterIn: string;
   widthIn: string;
@@ -64,7 +64,7 @@ function autoTitle(v: ListingFormValues): string {
 export function ListingForm({ initial }: { initial: ListingFormValues }) {
   const [v, setV] = useState(initial);
   const [titleTouched, setTitleTouched] = useState(Boolean(initial.title));
-  const [state, action] = useActionState<SaveState, FormData>(saveListing, {});
+  const [state, action, pending] = useActionState<SaveState, FormData>(saveListing, {});
 
   const set = <K extends keyof ListingFormValues>(k: K, value: ListingFormValues[K]) =>
     setV((prev) => ({ ...prev, [k]: value }));
@@ -74,7 +74,18 @@ export function ListingForm({ initial }: { initial: ListingFormValues }) {
   const isWheel = v.kind === "wheel";
 
   return (
-    <form action={action} className="pb-28">
+    <form
+      action={action}
+      // Submitted by hand rather than through the action attribute: React resets a form after
+      // its action runs, which cleared the dropdowns whenever saving failed and the owner had
+      // to pick them all again. This way an error leaves every field as it was.
+      onSubmit={(e) => {
+        e.preventDefault();
+        const data = new FormData(e.currentTarget);
+        startTransition(() => action(data));
+      }}
+      className="pb-28"
+    >
       <input type="hidden" name="id" value={v.id ?? ""} />
       <input type="hidden" name="kind" value={v.kind} />
       <input type="hidden" name="title" value={title} />
@@ -183,17 +194,17 @@ export function ListingForm({ initial }: { initial: ListingFormValues }) {
             <span className="mb-1.5 block font-semibold">Ár (Ft)</span>
             <input
               name="priceHuf"
-              type="number"
+              type="text"
               inputMode="numeric"
               required
               value={v.priceHuf}
-              onChange={(e) => set("priceHuf", e.target.value === "" ? "" : Number(e.target.value))}
+              onChange={(e) => set("priceHuf", e.target.value)}
               className="w-full rounded-lg border border-rule px-3.5 py-3 text-lg focus:border-brand focus:outline-none"
-              placeholder="330000"
+              placeholder="330.000"
             />
-            {v.priceHuf !== "" && (
+            {parseHuf(v.priceHuf) !== null && (
               <span className="mt-1.5 block text-[13px] text-ink-soft">
-                Így jelenik meg: <strong>{huf(Number(v.priceHuf))}</strong>
+                Így jelenik meg: <strong>{huf(parseHuf(v.priceHuf)!)}</strong>
               </span>
             )}
           </label>
@@ -236,15 +247,14 @@ export function ListingForm({ initial }: { initial: ListingFormValues }) {
           {state.error && (
             <p role="alert" className="flex-1 text-sm font-semibold text-brand-ink">{state.error}</p>
           )}
-          <SaveButton isNew={!v.id} />
+          <SaveButton isNew={!v.id} pending={pending} />
         </div>
       </div>
     </form>
   );
 }
 
-function SaveButton({ isNew }: { isNew: boolean }) {
-  const { pending } = useFormStatus();
+function SaveButton({ isNew, pending }: { isNew: boolean; pending: boolean }) {
   return (
     <button
       type="submit"
