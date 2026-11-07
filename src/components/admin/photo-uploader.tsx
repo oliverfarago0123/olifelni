@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { resizeForUpload } from "@/lib/client-resize";
 
 export type UploadedImage = { key: string; width: number; height: number; url: string };
@@ -12,7 +12,14 @@ export type UploadedImage = { key: string; width: number; height: number; url: s
  * Ordering uses explicit arrow buttons rather than drag-and-drop: the owner works on a
  * phone, where dragging inside a scrolling form is unreliable. The first photo is the
  * cover and is labelled as such, because that is the only ordering decision that matters.
+ *
+ * Photos can be picked with the button or dropped onto the box around it from Finder or the
+ * Photos app.
  */
+
+const isPhoto = (f: File) => f.type.startsWith("image/") || /\.hei[cf]$/i.test(f.name);
+const carriesFiles = (e: { dataTransfer: DataTransfer | null }) =>
+  Boolean(e.dataTransfer?.types.includes("Files"));
 export function PhotoUploader({
   value,
   onChange,
@@ -26,14 +33,36 @@ export function PhotoUploader({
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  // dragenter and dragleave also fire for every child the pointer crosses; count them so the
+  // highlight only goes off when the pointer really leaves the box.
+  const depth = useRef(0);
+
+  // A photo dropped just outside the box would otherwise open in the tab, throwing away the
+  // half-filled form.
+  useEffect(() => {
+    const keep = (e: DragEvent) => {
+      if (carriesFiles(e)) e.preventDefault();
+    };
+    window.addEventListener("dragover", keep);
+    window.addEventListener("drop", keep);
+    return () => {
+      window.removeEventListener("dragover", keep);
+      window.removeEventListener("drop", keep);
+    };
+  }, []);
 
   async function handleFiles(fileList: FileList | null) {
-    if (!fileList?.length) return;
+    if (!fileList?.length || busy) return;
+    const files = Array.from(fileList).filter(isPhoto);
+    if (!files.length) {
+      setError("Csak fényképet lehet feltölteni.");
+      return;
+    }
     setBusy(true);
     setError(null);
 
     try {
-      const files = Array.from(fileList);
       const form = new FormData();
       form.set("hint", hint);
 
@@ -75,7 +104,33 @@ export function PhotoUploader({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-3">
+      <div
+        onDragEnter={(e) => {
+          if (!carriesFiles(e)) return;
+          depth.current++;
+          setDragging(true);
+        }}
+        onDragOver={(e) => {
+          if (!carriesFiles(e)) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = busy ? "none" : "copy";
+        }}
+        onDragLeave={(e) => {
+          if (!carriesFiles(e)) return;
+          depth.current = Math.max(0, depth.current - 1);
+          if (depth.current === 0) setDragging(false);
+        }}
+        onDrop={(e) => {
+          if (!carriesFiles(e)) return;
+          e.preventDefault();
+          depth.current = 0;
+          setDragging(false);
+          handleFiles(e.dataTransfer.files);
+        }}
+        className={`flex flex-wrap items-center gap-3 rounded-xl border-2 border-dashed p-4 transition-colors ${
+          dragging ? "border-brand bg-brand/5" : "border-rule"
+        }`}
+      >
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -85,7 +140,14 @@ export function PhotoUploader({
           {busy ? progress || "Feltöltés…" : "+ Fényképek hozzáadása"}
         </button>
         <span className="text-sm text-ink-soft">
-          {value.length > 0 ? `${value.length} kép` : "Még nincs kép"}
+          {dragging ? (
+            <strong className="text-brand-ink">Engedd el a feltöltéshez</strong>
+          ) : (
+            <>
+              <span className="hidden sm:inline">vagy húzd ide a fényképeket · </span>
+              {value.length > 0 ? `${value.length} kép` : "Még nincs kép"}
+            </>
+          )}
         </span>
       </div>
 
