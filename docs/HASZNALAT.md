@@ -25,6 +25,7 @@ felninél osztókört és ET-t, guminál méretet és évszakot.
 
 ### 2. Fényképek
 Kattints a **+ Fényképek hozzáadása** gombra, és jelöld ki egyszerre az összes képet.
+Számítógépen a képeket rá is húzhatod a gomb körüli keretre, akár a Fotók alkalmazásból.
 
 - **Az első kép lesz a borítókép** — ez látszik a listában. A nyilakkal (← →) tudod
   átrendezni őket.
