@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useCatalogNavigation } from "./catalog-navigation";
 
 export function Pagination({
   page,
@@ -7,9 +10,19 @@ export function Pagination({
 }: {
   page: number;
   pageCount: number;
-  baseParams: URLSearchParams;
+  baseParams: string;
 }) {
+  const { go } = useCatalogNavigation();
   if (pageCount <= 1) return null;
+
+  // Through the catalogue navigation like the filters, so the results dim on the tap.
+  // The href stays for opening a page in a new tab.
+  const open = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    go(new URLSearchParams(e.currentTarget.search));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const href = (p: number) => {
     const sp = new URLSearchParams(baseParams);
@@ -32,7 +45,7 @@ export function Pagination({
   return (
     <nav className="mt-12 flex items-center justify-center gap-1.5" aria-label="Lapozás">
       {page > 1 && (
-        <Link href={href(page - 1)} rel="prev" aria-label="Előző oldal"
+        <Link href={href(page - 1)} onClick={open} rel="prev" aria-label="Előző oldal"
           className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft hover:bg-sheet">
           ‹
         </Link>
@@ -44,6 +57,7 @@ export function Pagination({
           <Link
             key={p}
             href={href(p)}
+            onClick={open}
             aria-current={p === page ? "page" : undefined}
             className={`flex h-9 min-w-9 items-center justify-center rounded-full px-2.5 text-sm font-bold ${
               p === page ? "bg-brand text-white" : "text-ink hover:bg-sheet"
@@ -54,7 +68,7 @@ export function Pagination({
         ),
       )}
       {page < pageCount && (
-        <Link href={href(page + 1)} rel="next" aria-label="Következő oldal"
+        <Link href={href(page + 1)} onClick={open} rel="next" aria-label="Következő oldal"
           className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft hover:bg-sheet">
           ›
         </Link>

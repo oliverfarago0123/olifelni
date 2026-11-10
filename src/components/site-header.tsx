@@ -1,15 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
 import { NAV, SITE } from "@/lib/site";
 
 export function SiteHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+
+  // On a phone the menu links only exist once the menu is open — too late to prefetch them
+  // before the tap. Fetch the main sections up front, so a menu tap shows the page at once.
+  useEffect(() => {
+    for (const item of NAV) router.prefetch(item.href);
+  }, [router]);
   const close = () => setOpen(false);
 
   const isActive = (href: string) =>
