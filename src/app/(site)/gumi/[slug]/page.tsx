@@ -5,6 +5,18 @@ import { huf } from "@/lib/format";
 
 type Props = { params: Promise<{ slug: string }> };
 
+/**
+ * Built on the first visit, then served ready-made from Vercel's edge instead of rendered on
+ * every request — and as a ready page, links to it can be prefetched in full, so tapping a
+ * listing opens it at once. Every admin save calls revalidatePath("/", "layout"), which
+ * clears these, so edits still show immediately; the hour is only a backstop.
+ */
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const l = await getListingBySlug(slug);

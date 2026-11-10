@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
 import { PARAM } from "@/lib/search-params";
+import { useCatalogNavigation } from "./catalog-navigation";
 
 /** "featured" is the owner's own order from the admin list, and the default. */
 const OPTIONS = [
@@ -12,8 +12,7 @@ const OPTIONS = [
 ];
 
 export function SortSelect() {
-  const router = useRouter();
-  const params = useSearchParams();
+  const { params, go } = useCatalogNavigation();
 
   return (
     <label className="flex items-center gap-2.5 text-sm">
@@ -26,7 +25,7 @@ export function SortSelect() {
             if (e.target.value === "featured") sp.delete(PARAM.sort);
             else sp.set(PARAM.sort, e.target.value);
             sp.delete(PARAM.page);
-            router.push(sp.toString() ? `?${sp}` : "?", { scroll: false });
+            go(sp);
           }}
           className="h-10 appearance-none rounded-lg border border-rule bg-surface pl-3 pr-9 text-sm font-semibold transition-colors hover:border-ink-soft focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
         >

@@ -10,7 +10,11 @@ export function ListingCardView({ item, priority = false }: { item: Card; priori
   const sold = item.status === "sold";
 
   return (
-    <Link href={href} className="group block">
+    // Fully prefetched as the card scrolls into view, so tapping it opens the listing at once
+    // even on a slow connection. Listing pages are ready-made at Vercel's edge, so a prefetch
+    // costs no server rendering. The default would fetch only the route map, because these
+    // pages are built on first visit rather than at deploy time.
+    <Link href={href} prefetch className="group block">
       {/*
         3:4 matches the source photography — 144 of 150 cover shots are portrait phone
         photos. A square card cropped a quarter off the top and bottom of almost every

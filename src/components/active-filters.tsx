@@ -1,8 +1,7 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
 import { huf } from "@/lib/format";
+import { useCatalogNavigation } from "./catalog-navigation";
 
 export type ChipDef = { param: string; value: string; label: string };
 
@@ -21,18 +20,18 @@ export function ActiveFilters({
   priceMin?: number;
   priceMax?: number;
 }) {
-  const router = useRouter();
-  const params = useSearchParams();
-  const [, start] = useTransition();
+  const { params, go: navigate } = useCatalogNavigation();
+  // A removed chip disappears on the tap, not when the server has answered.
+  const shown = chips.filter((c) => params.getAll(c.param).includes(c.value));
 
   const hasPrice = priceMin != null || priceMax != null;
-  if (!chips.length && !hasPrice) return null;
+  if (!shown.length && !hasPrice) return null;
 
   const go = (mutate: (sp: URLSearchParams) => void) => {
     const sp = new URLSearchParams(params.toString());
     mutate(sp);
     sp.delete("oldal");
-    start(() => router.push(sp.toString() ? `?${sp}` : "?", { scroll: false }));
+    navigate(sp);
   };
 
   const removeValue = (param: string, value: string) =>
@@ -58,7 +57,7 @@ export function ActiveFilters({
 
   return (
     <ul className="mb-5 flex flex-wrap items-center gap-2">
-      {chips.map((c) => (
+      {shown.map((c) => (
         <li key={`${c.param}-${c.value}`}>
           <Chip label={c.label} onRemove={() => removeValue(c.param, c.value)} />
         </li>

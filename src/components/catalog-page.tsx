@@ -5,6 +5,7 @@ import { Pagination } from "./pagination";
 import { SortSelect } from "./sort-select";
 import { ActiveFilters, type ChipDef } from "./active-filters";
 import { ListingGridSkeleton } from "./listing-skeleton";
+import { CatalogNavigation, PendingResults } from "./catalog-navigation";
 import { facetCounts, priceBounds, searchListings, type Filters as F } from "@/lib/listings";
 import { PARAM, parseFilters, toSearchParams, type RawParams } from "@/lib/search-params";
 import { SEASON_LABEL } from "@/lib/labels";
@@ -98,6 +99,7 @@ export async function CatalogPage({
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:grid lg:grid-cols-[250px_1fr] lg:gap-12 lg:py-14">
+        <CatalogNavigation>
         <Filters groups={groups} priceBounds={bounds} />
 
         <div className="mt-6 lg:mt-0">
@@ -108,10 +110,13 @@ export async function CatalogPage({
             skeleton while the server re-queries, instead of leaving the old results sitting
             there looking interactive.
           */}
-          <Suspense key={sp.toString()} fallback={<ResultsSkeleton />}>
-            <Results filters={filters} sp={sp} />
-          </Suspense>
+          <PendingResults>
+            <Suspense key={sp.toString()} fallback={<ResultsSkeleton />}>
+              <Results filters={filters} sp={sp} />
+            </Suspense>
+          </PendingResults>
         </div>
+        </CatalogNavigation>
       </div>
     </>
   );
@@ -130,7 +135,7 @@ async function Results({ filters, sp }: { filters: F; sp: URLSearchParams }) {
       </div>
 
       <ListingGrid items={result.items} />
-      <Pagination page={result.page} pageCount={result.pageCount} baseParams={sp} />
+      <Pagination page={result.page} pageCount={result.pageCount} baseParams={sp.toString()} />
     </>
   );
 }

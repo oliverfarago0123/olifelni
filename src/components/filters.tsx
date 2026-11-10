@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { huf } from "@/lib/format";
+import { useCatalogNavigation } from "./catalog-navigation";
 
 export type FacetGroup = {
   /** URL query key, Hungarian so the links read naturally. */
@@ -18,9 +18,7 @@ export function Filters({
   groups: FacetGroup[];
   priceBounds: { min: number; max: number };
 }) {
-  const router = useRouter();
-  const params = useSearchParams();
-  const [, startTransition] = useTransition();
+  const { params, go } = useCatalogNavigation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const selected = (param: string) => params.getAll(param);
@@ -33,7 +31,7 @@ export function Filters({
     const sp = new URLSearchParams(params.toString());
     mutate(sp);
     sp.delete("oldal"); // any filter change invalidates the current page number
-    startTransition(() => router.push(sp.toString() ? `?${sp}` : "?", { scroll: false }));
+    go(sp);
   }
 
   const toggle = (param: string, value: string) =>

@@ -8,7 +8,11 @@ import { facetCounts, searchListings } from "@/lib/listings";
 import { PARAM } from "@/lib/search-params";
 import { SITE } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+/**
+ * Served ready-made and rebuilt when stock changes: every admin save calls
+ * revalidatePath("/", "layout"). The hour is only a backstop.
+ */
+export const revalidate = 3600;
 
 export default async function HomePage() {
   const wheelFilter = { kind: "wheel" as const };
